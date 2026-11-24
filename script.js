@@ -192,7 +192,7 @@ cards.forEach(c => {
 
 // Newsletter: cada alta te llega por email (servicio gratuito FormSubmit)
 // >>> Cambia esto por TU correo (el que quieres que reciba los avisos) <<<
-const CORREO_AVISOS = 'TU_CORREO@gmail.com';
+const CORREO_AVISOS = 'rrubio13@iesmigmon.org';
 document.getElementById('newsForm').addEventListener('submit', async e => {
   e.preventDefault();
   const form = e.target, msg = document.getElementById('newsMsg'), btn = form.querySelector('button');
