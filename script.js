@@ -14,6 +14,12 @@ document.getElementById('cartBtn').addEventListener('click', e => e.preventDefau
 // Filtro por categoría
 const filters = document.querySelectorAll('.filter');
 const cards = document.querySelectorAll('.card');
+    // Oculta los filtros de categorías que aún no tienen ninguna prenda
+    filters.forEach(f => {
+      const cat = f.dataset.filter;
+      if (cat !== 'all' && ![...cards].some(c => c.dataset.cat === cat)) f.hidden = true;
+    });
+    if ([...filters].filter(f => !f.hidden).length <= 2) document.querySelector('.filters').hidden = true;
 filters.forEach(f => {
   f.addEventListener('click', () => {
     filters.forEach(x => x.classList.remove('is-active'));
