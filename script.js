@@ -1,6 +1,7 @@
 // Carrito: guarda las prendas, muestra foto/talla/precio y lleva al pago
 // Para cobrar con tarjeta pega aquí el enlace de pago de tu cuenta (Stripe, SumUp, PayPal...)
 const TIENDA = 'https://notyet-fk8unsjd.myshopify.com'; // tienda Shopify que cobra con tarjeta
+const VENTA_ACTIVA = false; // pon true cuando las prendas estén listas y la tienda Shopify cobre con tarjeta
 const PAGO_URL = '';
 const NYCart = (function () {
   const count = document.getElementById('cartCount');
@@ -49,9 +50,9 @@ const NYCart = (function () {
   document.getElementById('cartPay').addEventListener('click', () => {
     if (!lines.length) return;
     const ids = lines.filter(l => l.variant).map(l => l.variant + ':' + l.q).join(',');
-    if (TIENDA && ids) { window.location.href = TIENDA + '/cart/' + ids; return; }
+    if (VENTA_ACTIVA && TIENDA && ids) { window.location.href = TIENDA + '/cart/' + ids; return; }
     if (PAGO_URL) { window.location.href = PAGO_URL; return; }
-    note.textContent = 'El pago con tarjeta todavía no está activado en la tienda. Estamos preparando la tienda: tu pedido queda guardado en el carrito.';
+    note.textContent = 'Las prendas del Drop 01 aún no están a la venta. Tu carrito queda guardado: pronto podrás pagar con tarjeta aquí.';
   });
   render();
   return { add, open };
