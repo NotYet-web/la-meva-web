@@ -291,3 +291,17 @@ html.is-locked { overflow: hidden; }
   * { transition: none !important; }
 }
 
+
+/* ====== Colores, puntos y flechas de la ficha ====== */
+.colordot { width: 2rem; height: 2rem; padding: 0; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1.5px var(--pink-deep); cursor: pointer; transition: transform .2s, box-shadow .2s; }
+.colordot:hover { transform: scale(1.12); }
+.colordot[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--ink); }
+.colordot:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.colordot--sm { width: 1.35rem; height: 1.35rem; }
+.card__dots { display: flex; gap: .55rem; padding: .1rem .2rem; }
+.prod__label span { text-transform: none; letter-spacing: 0; font-weight: 600; }
+.prod__main { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.prod__nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: 2.6rem; height: 2.6rem; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .88); color: var(--ink); font-size: 1.7rem; line-height: 1; cursor: pointer; box-shadow: 0 2px 10px rgba(120, 40, 70, .2); }
+.prod__nav:hover { background: #fff; }
+.prod__nav--prev { left: .7rem; } .prod__nav--next { right: .7rem; }
+.prod__main.is-zoom .prod__nav { display: none; }

@@ -125,28 +125,80 @@ cards.forEach(c => {
   if (!dlg || !dlg.showModal) return;
   const $ = id => document.getElementById(id);
   const main = $('prodMain'), big = $('prodImg'), thumbs = $('prodThumbs'), sizesEl = $('prodSizes'), msg = $('prodMsg');
-  let chosen = null;
+  const colorsEl = $('prodColors'), colorsWrap = $('prodColorsWrap'), colorName = $('prodColorName');
+  let chosen = null, cur = null, idx = 0, lastSwipe = 0;
 
-  function setImg(img, btn) {
-    big.src = img.src; big.alt = img.alt;
-    thumbs.querySelectorAll('.prod__thumb').forEach(b => b.setAttribute('aria-pressed', b === btn));
+  const cardImgs = card => [...card.querySelectorAll('.card__img img')];
+  const colorsOf = card => { try { return JSON.parse(card.dataset.colors || '[]'); } catch (e) { return []; } };
+
+  // Cambia el color de una prenda (foto de la tarjeta y de la ficha)
+  function applyColor(card, ci) {
+    const cols = colorsOf(card); if (!cols.length) return;
+    card._ci = ci; const c = cols[ci], title = card.querySelector('h3').textContent;
+    cardImgs(card).forEach((im, i) => {
+      if (c.i[i]) { im.src = c.i[i]; im.alt = title + ' ' + c.n.toLowerCase() + (i ? ', vista trasera' : ', vista delantera'); }
+    });
+    const p = card.querySelector('.card__info p'); if (p && card.dataset.sub) p.textContent = c.n + ' · ' + card.dataset.sub;
+    card.querySelectorAll('.card__dots .colordot').forEach((d, k) => d.setAttribute('aria-pressed', k === ci));
+  }
+
+  function show(i) {
+    const imgs = cardImgs(cur); idx = (i + imgs.length) % imgs.length;
+    big.src = imgs[idx].src; big.alt = imgs[idx].alt;
+    thumbs.querySelectorAll('.prod__thumb').forEach((b, k) => b.setAttribute('aria-pressed', k === idx));
     main.classList.remove('is-zoom');
   }
-  function open(card) {
-    const imgs = [...card.querySelectorAll('.card__img img')];
-    thumbs.innerHTML = ''; sizesEl.innerHTML = ''; $('prodList').textContent = ''; msg.textContent = ''; chosen = null;
-    imgs.forEach((im, i) => {
+  const step = d => show(idx + d);
+
+  function buildThumbs() {
+    thumbs.innerHTML = '';
+    cardImgs(cur).forEach((im, i) => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'prod__thumb';
       b.setAttribute('aria-label', i ? 'Ver parte trasera' : 'Ver parte delantera');
       const t = new Image(); t.src = im.src; t.alt = ''; b.appendChild(t);
-      b.addEventListener('click', () => setImg(im, b)); thumbs.appendChild(b);
+      b.addEventListener('click', () => show(i)); thumbs.appendChild(b);
     });
-    thumbs.style.display = imgs.length > 1 ? '' : 'none';
-    setImg(imgs[0], thumbs.firstChild);
+    const many = cardImgs(cur).length > 1;
+    thumbs.style.display = many ? '' : 'none';
+    main.querySelectorAll('.prod__nav').forEach(n => n.hidden = !many);
+  }
+
+  function renderSections() {
+    const box = $('prodList'); box.textContent = '';
+    const cols = colorsOf(cur), cn = cols.length ? cols[cur._ci || 0].n.toLowerCase() : null;
+    let secs = []; try { secs = JSON.parse(cur.dataset.sections || '[]'); } catch (e) {}
+    secs.forEach((sec, k) => {
+      const d = document.createElement('details'); if (k === 0) d.open = true;
+      const sm = document.createElement('summary'); sm.textContent = sec.t; d.appendChild(sm);
+      const ul = document.createElement('ul');
+      sec.i.forEach(t => {
+        const li = document.createElement('li');
+        li.textContent = (cn && t.indexOf('Color:') === 0) ? 'Color: ' + cn : t; ul.appendChild(li);
+      });
+      d.appendChild(ul); box.appendChild(d);
+    });
+  }
+
+  function open(card) {
+    cur = card; idx = 0; chosen = null; sizesEl.innerHTML = ''; msg.textContent = '';
+    buildThumbs(); show(0);
     $('prodTag').textContent = card.dataset.tag || '';
     $('prodTitle').textContent = card.querySelector('h3').textContent;
     $('prodPrice').textContent = card.querySelector('strong').textContent;
     $('prodDesc').textContent = card.dataset.desc || '';
+    const cols = colorsOf(card);
+    colorsWrap.hidden = !cols.length; colorsEl.innerHTML = '';
+    cols.forEach((c, k) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'colordot';
+      b.style.background = c.c; b.setAttribute('aria-label', c.n); b.setAttribute('aria-pressed', k === (card._ci || 0));
+      b.addEventListener('click', () => {
+        applyColor(card, k); buildThumbs(); show(idx); renderSections();
+        colorName.textContent = c.n;
+        colorsEl.querySelectorAll('.colordot').forEach((x, j) => x.setAttribute('aria-pressed', j === k));
+      });
+      colorsEl.appendChild(b);
+    });
+    if (cols.length) colorName.textContent = cols[card._ci || 0].n;
     (card.dataset.sizes || 'S,M,L,XL').split(',').forEach(sz => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'size'; b.textContent = sz.trim();
       b.setAttribute('aria-pressed', 'false');
@@ -156,14 +208,7 @@ cards.forEach(c => {
       });
       sizesEl.appendChild(b);
     });
-    let secs = []; try { secs = JSON.parse(card.dataset.sections || '[]'); } catch (e) {}
-    secs.forEach((sec, k) => {
-      const d = document.createElement('details'); if (k === 0) d.open = true;
-      const sm = document.createElement('summary'); sm.textContent = sec.t; d.appendChild(sm);
-      const ul = document.createElement('ul');
-      sec.i.forEach(t => { const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
-      d.appendChild(ul); $('prodList').appendChild(d);
-    });
+    renderSections();
     document.documentElement.classList.add('is-locked');
     dlg.showModal(); dlg.scrollTop = 0;
   }
@@ -171,9 +216,23 @@ cards.forEach(c => {
   dlg.addEventListener('close', () => document.documentElement.classList.remove('is-locked'));
   $('prodClose').addEventListener('click', close);
   dlg.addEventListener('click', e => { if (e.target === dlg) close(); });
+  dlg.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') step(1); else if (e.key === 'ArrowLeft') step(-1);
+  });
+  $('prodPrev').addEventListener('click', () => step(-1));
+  $('prodNext').addEventListener('click', () => step(1));
 
-  // zoom con clic y seguimiento del puntero
-  main.addEventListener('click', () => main.classList.toggle('is-zoom'));
+  // deslizar con el dedo (o arrastrar con el ratón) para ver la otra cara; clic para zoom
+  let sx = null;
+  main.addEventListener('pointerdown', e => { sx = e.clientX; });
+  main.addEventListener('pointerup', e => {
+    if (sx === null) return; const dx = e.clientX - sx; sx = null;
+    if (Math.abs(dx) > 45) { lastSwipe = Date.now(); step(dx < 0 ? 1 : -1); }
+  });
+  main.addEventListener('click', e => {
+    if (Date.now() - lastSwipe < 400 || e.target.closest('.prod__nav')) return;
+    main.classList.toggle('is-zoom');
+  });
   main.addEventListener('mousemove', e => {
     const r = main.getBoundingClientRect();
     main.style.setProperty('--zx', ((e.clientX - r.left) / r.width * 100) + '%');
@@ -183,7 +242,8 @@ cards.forEach(c => {
   $('prodAdd').addEventListener('click', () => {
     if (!chosen) { msg.textContent = 'Elige una talla primero.'; return; }
     items++; count.textContent = items;
-    msg.textContent = 'Añadida al carrito (talla ' + chosen + ') ✓';
+    const cols = colorsOf(cur), cn = cols.length ? ', ' + cols[cur._ci || 0].n.toLowerCase() : '';
+    msg.textContent = 'Añadida al carrito (talla ' + chosen + cn + ') ✓';
   });
 
   document.querySelectorAll('.card[data-desc]').forEach(card => {
@@ -193,6 +253,18 @@ cards.forEach(c => {
     box.addEventListener('click', go);
     box.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
     card.querySelector('h3').addEventListener('click', go);
+    // puntos de color en la tarjeta
+    const cols = colorsOf(card);
+    if (cols.length) {
+      const row = document.createElement('div'); row.className = 'card__dots'; row.setAttribute('role', 'group'); row.setAttribute('aria-label', 'Color');
+      cols.forEach((c, k) => {
+        const d = document.createElement('button'); d.type = 'button'; d.className = 'colordot colordot--sm';
+        d.style.background = c.c; d.setAttribute('aria-label', c.n); d.setAttribute('aria-pressed', k === 0);
+        d.addEventListener('click', e => { e.stopPropagation(); applyColor(card, k); });
+        row.appendChild(d);
+      });
+      card.querySelector('.card__info').before(row);
+    }
   });
 })();
 
