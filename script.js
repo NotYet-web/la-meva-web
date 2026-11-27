@@ -1,5 +1,6 @@
 // Carrito: guarda las prendas, muestra foto/talla/precio y lleva al pago
 // Para cobrar con tarjeta pega aquí el enlace de pago de tu cuenta (Stripe, SumUp, PayPal...)
+const TIENDA = 'https://notyet-fk8unsjd.myshopify.com'; // tienda Shopify que cobra con tarjeta
 const PAGO_URL = '';
 const NYCart = (function () {
   const count = document.getElementById('cartCount');
@@ -37,7 +38,7 @@ const NYCart = (function () {
   }
   function add(p) {
     const f = lines.find(l => l.name === p.name && l.size === p.size && l.color === p.color);
-    if (f) f.q++; else lines.push({ name: p.name, color: p.color || '', size: p.size, price: num(p.price), img: p.img, q: 1 });
+    if (f) f.q++; else lines.push({ variant: p.variant, name: p.name, color: p.color || '', size: p.size, price: num(p.price), img: p.img, q: 1 });
     save(); render();
   }
   function open() { render(); dlg.showModal(); }
@@ -47,6 +48,8 @@ const NYCart = (function () {
   dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
   document.getElementById('cartPay').addEventListener('click', () => {
     if (!lines.length) return;
+    const ids = lines.filter(l => l.variant).map(l => l.variant + ':' + l.q).join(',');
+    if (TIENDA && ids) { window.location.href = TIENDA + '/cart/' + ids; return; }
     if (PAGO_URL) { window.location.href = PAGO_URL; return; }
     note.textContent = 'El pago con tarjeta todavía no está activado en la tienda. Estamos preparando la tienda: tu pedido queda guardado en el carrito.';
   });
@@ -290,7 +293,7 @@ cards.forEach(c => {
   $('prodAdd').addEventListener('click', () => {
     if (!chosen) { msg.textContent = 'Elige una talla primero.'; return; }
     const cols = colorsOf(cur), cn = cols.length ? cols[cur._ci || 0].n : '';
-    NYCart.add({ name: cur.querySelector('h3').textContent, color: cn || (cur.querySelector('.card__info p').textContent.split(' · ')[0]), size: chosen, price: cur.querySelector('strong').textContent, img: cardImgs(cur)[0].getAttribute('src') });
+    NYCart.add({ variant: (JSON.parse(cur.dataset.variants || '{}'))[chosen], name: cur.querySelector('h3').textContent, color: cn || (cur.querySelector('.card__info p').textContent.split(' · ')[0]), size: chosen, price: cur.querySelector('strong').textContent, img: cardImgs(cur)[0].getAttribute('src') });
     msg.textContent = 'Añadida al carrito (talla ' + chosen + ') ✓';
   });
 
