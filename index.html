@@ -156,6 +156,19 @@
       </div>
     </div>
   </dialog>
+  <dialog class="cart-dlg" id="cart" aria-label="Carrito">
+    <button class="prod__close" id="cartClose" type="button" aria-label="Cerrar carrito">&times;</button>
+    <h2>Tu carrito</h2>
+    <p id="cartEmpty" class="cart__empty">Todavía no has añadido nada.</p>
+    <ul class="cart__list" id="cartList"></ul>
+    <div id="cartFoot" hidden>
+      <div class="cart__total"><span>Total</span><strong id="cartTotal"></strong></div>
+      <p class="cart__ship">Envío gratis a partir de 60 €. Devoluciones en 14 días.</p>
+      <button class="btn" id="cartPay" type="button">Pagar con tarjeta</button>
+      <button class="btn btn--ghost" id="cartKeep" type="button">Seguir comprando</button>
+      <p class="cart__note" id="cartNote" role="status"></p>
+    </div>
+  </dialog>
 
   <footer class="footer">
     <a href="#inicio" class="logo">NotYet</a>

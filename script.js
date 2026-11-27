@@ -1,15 +1,63 @@
-// Carrito simple (demostración: solo cuenta artículos)
-const count = document.getElementById('cartCount');
-let items = 0;
-document.querySelectorAll('.add').forEach(btn => {
-  btn.addEventListener('click', () => {
-    items++;
-    count.textContent = items;
-    btn.textContent = 'Añadido ✓';
-    setTimeout(() => (btn.textContent = 'Añadir'), 1200);
+// Carrito: guarda las prendas, muestra foto/talla/precio y lleva al pago
+// Para cobrar con tarjeta pega aquí el enlace de pago de tu cuenta (Stripe, SumUp, PayPal...)
+const PAGO_URL = '';
+const NYCart = (function () {
+  const count = document.getElementById('cartCount');
+  const dlg = document.getElementById('cart');
+  const list = document.getElementById('cartList'), totalEl = document.getElementById('cartTotal');
+  const empty = document.getElementById('cartEmpty'), foot = document.getElementById('cartFoot'), note = document.getElementById('cartNote');
+  let lines = [];
+  try { lines = JSON.parse(localStorage.getItem('notyet-cart') || '[]'); } catch (e) {}
+  const save = () => { try { localStorage.setItem('notyet-cart', JSON.stringify(lines)); } catch (e) {} };
+  const eur = n => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  const num = s => parseFloat(String(s).replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+
+  function render() {
+    const n = lines.reduce((a, l) => a + l.q, 0);
+    count.textContent = n;
+    list.textContent = '';
+    lines.forEach((l, k) => {
+      const li = document.createElement('li'); li.className = 'cart__line';
+      const im = new Image(); im.src = l.img; im.alt = l.name;
+      const info = document.createElement('div'); info.className = 'cart__info';
+      const t = document.createElement('strong'); t.textContent = l.name;
+      const d = document.createElement('span'); d.textContent = [l.color, 'Talla ' + l.size].filter(Boolean).join(' · ');
+      const pr = document.createElement('span'); pr.textContent = eur(l.price);
+      const qty = document.createElement('div'); qty.className = 'cart__qty';
+      const mk = (txt, label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = txt; b.setAttribute('aria-label', label); b.addEventListener('click', fn); return b; };
+      const q = document.createElement('span'); q.textContent = l.q;
+      qty.append(mk('−', 'Quitar una unidad', () => { l.q--; if (l.q < 1) lines.splice(k, 1); save(); render(); }), q,
+                 mk('+', 'Añadir una unidad', () => { l.q++; save(); render(); }));
+      const rm = mk('Eliminar', 'Eliminar ' + l.name, () => { lines.splice(k, 1); save(); render(); }); rm.className = 'cart__rm';
+      info.append(t, d, pr, qty); li.append(im, info, rm); list.appendChild(li);
+    });
+    empty.hidden = lines.length > 0; foot.hidden = !lines.length;
+    totalEl.textContent = eur(lines.reduce((a, l) => a + l.price * l.q, 0));
+    note.textContent = '';
+  }
+  function add(p) {
+    const f = lines.find(l => l.name === p.name && l.size === p.size && l.color === p.color);
+    if (f) f.q++; else lines.push({ name: p.name, color: p.color || '', size: p.size, price: num(p.price), img: p.img, q: 1 });
+    save(); render();
+  }
+  function open() { render(); dlg.showModal(); }
+  document.getElementById('cartBtn').addEventListener('click', e => { e.preventDefault(); open(); });
+  document.getElementById('cartClose').addEventListener('click', () => dlg.close());
+  document.getElementById('cartKeep').addEventListener('click', () => dlg.close());
+  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+  document.getElementById('cartPay').addEventListener('click', () => {
+    if (!lines.length) return;
+    if (PAGO_URL) { window.location.href = PAGO_URL; return; }
+    note.textContent = 'El pago con tarjeta todavía no está activado en la tienda. Estamos preparando la tienda: tu pedido queda guardado en el carrito.';
   });
+  render();
+  return { add, open };
+})();
+
+// Los botones "Añadir" de las tarjetas abren la ficha para elegir talla
+document.querySelectorAll('.add').forEach(btn => {
+  btn.addEventListener('click', () => btn.closest('.card').querySelector('.card__img').click());
 });
-document.getElementById('cartBtn').addEventListener('click', e => e.preventDefault());
 
 // Filtro por categoría
 const filters = document.querySelectorAll('.filter');
@@ -241,9 +289,9 @@ cards.forEach(c => {
 
   $('prodAdd').addEventListener('click', () => {
     if (!chosen) { msg.textContent = 'Elige una talla primero.'; return; }
-    items++; count.textContent = items;
-    const cols = colorsOf(cur), cn = cols.length ? ', ' + cols[cur._ci || 0].n.toLowerCase() : '';
-    msg.textContent = 'Añadida al carrito (talla ' + chosen + cn + ') ✓';
+    const cols = colorsOf(cur), cn = cols.length ? cols[cur._ci || 0].n : '';
+    NYCart.add({ name: cur.querySelector('h3').textContent, color: cn || (cur.querySelector('.card__info p').textContent.split(' · ')[0]), size: chosen, price: cur.querySelector('strong').textContent, img: cardImgs(cur)[0].getAttribute('src') });
+    msg.textContent = 'Añadida al carrito (talla ' + chosen + ') ✓';
   });
 
   document.querySelectorAll('.card[data-desc]').forEach(card => {
